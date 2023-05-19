@@ -1,0 +1,57 @@
+﻿@model ChatApplication.Models.RoomViewModel
+@*@model int*@
+@using Microsoft.AspNetCore.Http;
+
+<h1>@ChatApplication.Controllers.ChatController.Rooms.GetValueOrDefault(Model.Room) Room</h1>
+<h5>Welcome! @User.Identity.Name</h5>
+
+
+<div class="row">
+    <div class="col-12">
+       
+        <input class="form-control" aria-label="Large" type"text" placeholder="texto" id="message" />
+        <button class="btn btn-primary" id="btnSend">Send</button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div id="messages">
+            @foreach (var message in Model.Messages)
+            {
+                @Html.Raw(@message)
+            }
+        </div>
+    </div>
+</div>
+
+<script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+<script>
+    var connection = new signalR.HubConnectionBuilder().withUrl("/chat").build();
+
+    connection.start().then( () => {
+        connection.invoke("AddToGroup", "@Model.Room")
+    }).catch((e) => console.error(e));
+
+    document.getElementById("btnSend").addEventListener("click", (event) => {
+        let room = "@Model.Room";
+        let user = "@User.Identity.Name";
+        let message = document.getElementById("message").value;
+        console.log(typeof room);
+        connection.invoke("SendMessage",room,user,message).catch((err) =>{
+            console.error(err.toString());
+        });
+
+        document.getElementById("message").value = "";
+        document.getElementById("message").focus();
+
+        event.preventDefault();
+    })
+
+    connection.on("ReceivedMessage", (user, message) => {
+        var message = "<div><b>" + user + ":</b> " + message + "</div>";
+        document.getElementById("messages").innerHTML =
+            document.getElementById("messages").innerHTML + message;
+    });
+</script>
